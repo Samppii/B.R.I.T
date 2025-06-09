@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRIT - Bible Reciting Intelligence Technology</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        #message-container {
+            height: 400px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            overflow-y: auto;
+        }
+        #input-container {
+            display: flex;
+            gap: 10px;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .brit-message {
+            margin-bottom: 10px;
+            color: #2980b9;
+        }
+        .user-message {
+            margin-bottom: 10px;
+            text-align: right;
+            color: #16a085;
+        }
+    </style>
+</head>
+<body>
+    <h1>BRIT - Bible Reciting Intelligence Technology</h1>
+    <div id="message-container"></div>
+    <div id="input-container">
+        <input type="text" id="user-input" placeholder="Ask BRIT something...">
+        <button id="send-button">Send</button>
+        <button id="voice-button">Voice</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageContainer = document.getElementById('message-container');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const voiceButton = document.getElementById('voice-button');
+            
+            // Add initial greeting
+            addMessage('Hello inventors, welcome to the Research and Development Center! I\'m BRIT, your Bible Reciting Intelligence Technology. How can I help you today?', 'brit');
+            
+            // Send message on button click
+            sendButton.addEventListener('click', function() {
+                sendMessage();
+            });
+            
+            // Send message on Enter key
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // Set up Web Speech API for voice recognition
+            let recognition = null;
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    userInput.value = transcript;
+                    sendMessage();
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error', event.error);
+                };
+            }
+            
+            // Toggle voice recognition
+            voiceButton.addEventListener('click', function() {
+                if (recognition) {
+                    recognition.start();
+                    voiceButton.textContent = 'Listening...';
+                    
+                    // Change button text back after 5 seconds
+                    setTimeout(() => {
+                        voiceButton.textContent = 'Voice';
+                    }, 5000);
+                } else {
+                    alert('Speech recognition is not supported in your browser.');
+                }
+            });
+            
+            function sendMessage() {
+                const message = userInput.value.trim();
+                
+                if (message) {
+                    // Add user message to chat
+                    addMessage(message, 'user');
+                    
+                    // Clear input
+                    userInput.value = '';
+                    
+                    // Send to backend
+                    fetch('/api/brit/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: message }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Add BRIT's response to chat
+                        addMessage(data.response, 'brit');
+                        
+                        // Speak the response
+                        speakResponse(data.response);
+                        
+                        // Handle special actions if needed
+                        if (data.actions) {
+                            handleActions(data.actions);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        addMessage('Sorry, I had trouble processing your request.', 'brit');
+                    });
+                }
+            }
+            
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = sender + '-message';
+                messageDiv.textContent = text;
+                messageContainer.appendChild(messageDiv);
+                
+                // Auto-scroll to bottom
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+            
+            function speakResponse(text) {
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    
+                    // Get available voices
+                    const voices = window.speechSynthesis.getVoices();
+                    
+                    // Try to find a female voice
+                    const femaleVoice = voices.find(voice => 
+                        voice.name.includes('female') || 
+                        voice.name.includes('girl') || 
+                        voice.name.includes('woman')
+                    );
+                    
+                    if (femaleVoice) {
+                        utterance.voice = femaleVoice;
+                    }
+                    
+                    window.speechSynthesis.speak(utterance);
+                }
+            }
+            
+            function handleActions(actions) {
+                if (actions.showBlueprint) {
+                    alert('Blueprint display would appear here');
+                } else if (actions.zoomShelf) {
+                    alert('Shelf zoom effect would appear here');
+                } else if (actions.showWordOptions) {
+                    alert('Word options would appear here: ' + actions.showWordOptions.join(', '));
+                }
+            }
+        });
+    </script>
+</body>
+</html>
